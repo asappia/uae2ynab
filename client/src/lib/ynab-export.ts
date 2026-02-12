@@ -2,26 +2,35 @@
  * YNAB Export Utility
  * 
  * Converts parsed transactions to YNAB-compatible CSV format.
- * Supports both Inflow/Outflow and Amount formats.
+ * All fields are double-quoted. Dates use DD/MM/YYYY.
+ * Inflow/Outflow use "0" for the empty side (not blank).
  */
 
 import type { Transaction } from './parsers/adcb';
 
 export type YNABFormat = 'inflow-outflow' | 'amount';
 
-function escapeCSV(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
+function q(value: string): string {
+  // Always quote, escape inner quotes by doubling
+  return `"${value.replace(/"/g, '""')}"`;
 }
 
 function formatDate(isoDate: string): string {
-  // YNAB accepts many date formats, we'll use MM/DD/YYYY which is common
+  // DD/MM/YYYY to match the reference YNAB file
   const parts = isoDate.split('-');
   if (parts.length !== 3) return isoDate;
   const [yyyy, mm, dd] = parts;
-  return `${mm}/${dd}/${yyyy}`;
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function formatAmount(n: number): string {
+  // Positive number string, no trailing decimals if .00
+  const abs = Math.abs(n);
+  const fixed = abs.toFixed(2);
+  // Remove trailing .00 only if it's a whole number, but keep .10 etc.
+  // Actually the reference file keeps decimals like "1.78", "0.11" but also "152250" (no decimals)
+  // So: strip trailing zeros after decimal, then strip trailing dot
+  return fixed.replace(/\.?0+$/, '') || '0';
 }
 
 export function toYNABCSV(
@@ -31,27 +40,24 @@ export function toYNABCSV(
   const lines: string[] = [];
   
   if (format === 'inflow-outflow') {
-    lines.push('Date,Payee,Memo,Outflow,Inflow');
+    lines.push(`${q('Date')},${q('Payee')},${q('Memo')},${q('Outflow')},${q('Inflow')}`);
     
     for (const tx of transactions) {
       const date = formatDate(tx.date);
-      const payee = escapeCSV(tx.payee);
-      const memo = escapeCSV(tx.memo);
-      const outflow = tx.amount < 0 ? Math.abs(tx.amount).toFixed(2) : '';
-      const inflow = tx.amount > 0 ? tx.amount.toFixed(2) : '';
+      const outflow = tx.amount < 0 ? formatAmount(tx.amount) : '0';
+      const inflow = tx.amount > 0 ? formatAmount(tx.amount) : '0';
       
-      lines.push(`${date},${payee},${memo},${outflow},${inflow}`);
+      lines.push(`${q(date)},${q(tx.payee)},${q(tx.memo)},${q(outflow)},${q(inflow)}`);
     }
   } else {
-    lines.push('Date,Payee,Memo,Amount');
+    lines.push(`${q('Date')},${q('Payee')},${q('Memo')},${q('Amount')}`);
     
     for (const tx of transactions) {
       const date = formatDate(tx.date);
-      const payee = escapeCSV(tx.payee);
-      const memo = escapeCSV(tx.memo);
-      const amount = tx.amount.toFixed(2);
+      const sign = tx.amount < 0 ? '-' : '';
+      const amount = sign + formatAmount(tx.amount);
       
-      lines.push(`${date},${payee},${memo},${amount}`);
+      lines.push(`${q(date)},${q(tx.payee)},${q(tx.memo)},${q(amount)}`);
     }
   }
   
