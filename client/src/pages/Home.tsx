@@ -86,10 +86,10 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-base font-bold tracking-tight leading-none">
-                UAE → YNAB
+                YNAB Import
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Statement Converter
+                UAE Bank Statements
               </p>
             </div>
           </div>
@@ -110,9 +110,18 @@ export default function Home() {
           <section>
             <div className="mb-4">
               <h2 className="text-lg font-semibold">Upload Statements</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                ADCB account &amp; credit card (CSV) and Emirates NBD account &amp; credit card (PDF).
-              </p>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                {[
+                  { bank: 'ADCB', types: 'Account & Credit Card', format: 'CSV' },
+                  { bank: 'Emirates NBD', types: 'Account & Credit Card', format: 'PDF' },
+                ].map(({ bank, types, format }) => (
+                  <div key={bank} className="flex items-baseline gap-2 text-sm">
+                    <span className="font-medium">{bank}</span>
+                    <span className="text-muted-foreground text-xs">{types}</span>
+                    <span className="ml-auto font-mono text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{format}</span>
+                  </div>
+                ))}
+              </div>
             </div>
             <FileUploadZone
               onFilesSelected={handleFilesSelected}
