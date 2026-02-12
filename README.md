@@ -1,4 +1,4 @@
-# UAE → YNAB Statement Converter
+# UAE2YNAB
 
 Convert **ADCB** and **Emirates NBD** bank statements into YNAB-compatible CSV files.
 All processing happens in your browser — your data never leaves your computer.
@@ -14,7 +14,7 @@ All processing happens in your browser — your data never leaves your computer.
 
 ## How to Use
 
-1. Visit [asappia.github.io/ynab-uae-converter](https://asappia.github.io/ynab-uae-converter/)
+1. Visit [asappia.github.io/ynab-uae-converter](https://asappia.github.io/ynab-uae-converter/) (UAE2YNAB)
 2. Drop or select your statement files (CSV or PDF)
 3. Review the parsed transactions
 4. Choose export format (Inflow/Outflow or Single Amount)

@@ -86,10 +86,10 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-base font-bold tracking-tight leading-none">
-                YNAB Import
+                UAE2YNAB
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                UAE Bank Statements
+                Bank Statement Converter
               </p>
             </div>
           </div>
