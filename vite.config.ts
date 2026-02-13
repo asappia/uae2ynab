@@ -153,7 +153,7 @@ function vitePluginManusDebugCollector(): Plugin {
 const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
-  base: process.env.GITHUB_ACTIONS ? '/ynab-uae-converter/' : '/',
+  base: process.env.GITHUB_ACTIONS ? '/uae2ynab/' : '/',
   plugins,
   resolve: {
     alias: {

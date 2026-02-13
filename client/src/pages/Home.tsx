@@ -261,7 +261,7 @@ export default function Home() {
           </p>
           <div className="flex items-center gap-3">
             <a
-              href="https://github.com/asappia/ynab-uae-converter/issues/new"
+              href="https://github.com/asappia/uae2ynab/issues/new"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -270,7 +270,7 @@ export default function Home() {
               <span className="hidden sm:inline">Report an issue</span>
             </a>
             <a
-              href="https://github.com/asappia/ynab-uae-converter"
+              href="https://github.com/asappia/uae2ynab"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
