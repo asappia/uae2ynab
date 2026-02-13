@@ -1,0 +1,76 @@
+name: Bug Report
+description: Report a parsing error or incorrect output
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: bank
+    attributes:
+      label: Bank
+      description: Which bank's statement is affected?
+      options:
+        - ADCB
+        - Emirates NBD
+        - Other (please specify below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: statement-type
+    attributes:
+      label: Statement Type
+      description: What type of statement?
+      options:
+        - Account Statement
+        - Credit Card Statement
+    validations:
+      required: true
+
+  - type: dropdown
+    id: file-format
+    attributes:
+      label: File Format
+      description: What file format is the statement?
+      options:
+        - CSV
+        - PDF
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What went wrong? Please describe the issue clearly.
+      placeholder: "e.g., Some transactions are missing, amounts are incorrect, dates are wrong..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "e.g., All 15 transactions should appear with correct amounts"
+    validations:
+      required: false
+
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample Data
+      description: |
+        If possible, paste a few lines of the problematic statement (redact sensitive info like account numbers).
+        For PDFs, describe the transaction rows that are parsed incorrectly.
+      placeholder: "Paste redacted sample data here..."
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: Which browser are you using?
+      placeholder: "e.g., Chrome 120, Safari 17, Firefox 121"
+    validations:
+      required: false

@@ -1,0 +1,38 @@
+name: Feature Request
+description: Suggest a new bank, feature, or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What type of feature is this?
+      options:
+        - New bank support
+        - New statement format
+        - Export improvement
+        - UI/UX improvement
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the feature you'd like to see.
+      placeholder: "e.g., Add support for FAB (First Abu Dhabi Bank) CSV statements"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample File
+      description: |
+        If requesting a new bank or format, please attach or paste a sample statement (redact sensitive info).
+        This helps us understand the file structure.
+      placeholder: "Paste redacted sample data or describe the file format..."
+    validations:
+      required: false
