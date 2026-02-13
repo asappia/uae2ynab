@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Loader2, FileText, X, Shield, ArrowRight } from 'lucide-react';
+import { Loader2, FileText, X, Shield, ArrowRight, Bug, Github } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import FileUploadZone from '@/components/FileUploadZone';
@@ -255,10 +255,29 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-border py-4">
-        <div className="container">
-          <p className="text-xs text-muted-foreground text-center font-mono">
+        <div className="container flex items-center justify-between">
+          <p className="text-xs text-muted-foreground font-mono">
             Your data never leaves your browser. No server, no tracking, no storage.
           </p>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://github.com/asappia/ynab-uae-converter/issues/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Bug className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Report an issue</span>
+            </a>
+            <a
+              href="https://github.com/asappia/ynab-uae-converter"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Github className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
       </footer>
     </div>
