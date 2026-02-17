@@ -71,9 +71,8 @@ export default function Home() {
     setFileResults([]);
   }, []);
 
-  const allTransactions = fileResults
-    .filter(fr => fr.result && fr.result.transactions.length > 0)
-    .flatMap(fr => fr.result!.transactions);
+  const successfulFiles = fileResults.filter(fr => fr.result && fr.result.transactions.length > 0);
+  const totalTransactions = successfulFiles.reduce((sum, fr) => sum + fr.result!.transactions.length, 0);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -201,8 +200,8 @@ export default function Home() {
             )}
           </AnimatePresence>
 
-          {/* Transaction preview + export */}
-          {fileResults.filter(fr => fr.result && fr.result.transactions.length > 0).map((fr, i) => (
+          {/* Transaction preview per file */}
+          {successfulFiles.map((fr, i) => (
             <motion.section
               key={`table-${fr.file.name}-${i}`}
               initial={{ opacity: 0, y: 12 }}
@@ -220,8 +219,10 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Single file export: CSV */}
               <div className="border-t border-dashed border-border pt-4">
                 <ExportPanel
+                  mode="single"
                   transactions={fr.result!.transactions}
                   fileName={fr.file.name}
                 />
@@ -229,8 +230,8 @@ export default function Home() {
             </motion.section>
           ))}
 
-          {/* Export all button when multiple files have transactions */}
-          {fileResults.filter(fr => fr.result && fr.result.transactions.length > 0).length > 1 && (
+          {/* Export All as ZIP when multiple files have transactions */}
+          {successfulFiles.length > 1 && (
             <motion.section
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -238,14 +239,17 @@ export default function Home() {
             >
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold">Export All</h3>
+                  <h3 className="text-sm font-semibold">Export All as ZIP</h3>
                   <p className="text-xs opacity-70 font-mono mt-0.5">
-                    {allTransactions.length} transactions from {fileResults.filter(fr => fr.result && fr.result.transactions.length > 0).length} files
+                    {totalTransactions} transactions from {successfulFiles.length} files &middot; one CSV per file
                   </p>
                 </div>
                 <ExportPanel
-                  transactions={allTransactions}
-                  fileName="all_statements"
+                  mode="multi"
+                  entries={successfulFiles.map(fr => ({
+                    originalFileName: fr.file.name,
+                    transactions: fr.result!.transactions,
+                  }))}
                 />
               </div>
             </motion.section>
