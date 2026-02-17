@@ -1,31 +1,58 @@
 /**
  * ExportPanel
  * 
- * Controls for choosing YNAB format and downloading the CSV.
+ * Controls for choosing YNAB format and downloading.
+ * Single file → CSV download.
+ * Multiple files → ZIP with one CSV per file.
  */
 
 import { useState } from 'react';
-import { Download, Check } from 'lucide-react';
+import { Download, Check, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toYNABCSV, downloadCSV, type YNABFormat } from '@/lib/ynab-export';
+import { toYNABCSV, downloadCSV, downloadZip, type YNABFormat, type FileExportEntry } from '@/lib/ynab-export';
 import type { Transaction } from '@/lib/parsers';
 
-interface ExportPanelProps {
+interface SingleFileExportProps {
+  mode: 'single';
   transactions: Transaction[];
   fileName: string;
 }
 
-export default function ExportPanel({ transactions, fileName }: ExportPanelProps) {
+interface MultiFileExportProps {
+  mode: 'multi';
+  entries: FileExportEntry[];
+}
+
+type ExportPanelProps = SingleFileExportProps | MultiFileExportProps;
+
+export default function ExportPanel(props: ExportPanelProps) {
   const [format, setFormat] = useState<YNABFormat>('inflow-outflow');
   const [downloaded, setDownloaded] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  const handleExport = () => {
-    const csv = toYNABCSV(transactions, format);
-    const baseName = fileName.replace(/\.(csv|pdf)$/i, '');
-    downloadCSV(csv, `${baseName}_ynab.csv`);
-    setDownloaded(true);
-    setTimeout(() => setDownloaded(false), 2500);
+  const totalTransactions = props.mode === 'single'
+    ? props.transactions.length
+    : props.entries.reduce((sum, e) => sum + e.transactions.length, 0);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      if (props.mode === 'single') {
+        const csv = toYNABCSV(props.transactions, format);
+        const baseName = props.fileName.replace(/\.(csv|pdf|xlsx?)$/i, '');
+        downloadCSV(csv, `${baseName}_ynab.csv`);
+      } else {
+        await downloadZip(props.entries, format);
+      }
+      setDownloaded(true);
+      setTimeout(() => setDownloaded(false), 2500);
+    } finally {
+      setExporting(false);
+    }
   };
+
+  const isZip = props.mode === 'multi';
+  const IconComponent = isZip ? Archive : Download;
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -56,7 +83,7 @@ export default function ExportPanel({ transactions, fileName }: ExportPanelProps
       {/* Download button */}
       <Button
         onClick={handleExport}
-        disabled={transactions.length === 0}
+        disabled={totalTransactions === 0 || exporting}
         size="sm"
         className="gap-2 bg-navy text-parchment hover:bg-navy-light"
       >
@@ -67,8 +94,8 @@ export default function ExportPanel({ transactions, fileName }: ExportPanelProps
           </>
         ) : (
           <>
-            <Download className="w-3.5 h-3.5" />
-            Export for YNAB
+            <IconComponent className="w-3.5 h-3.5" />
+            {isZip ? 'Export ZIP' : 'Export for YNAB'}
           </>
         )}
       </Button>

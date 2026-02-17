@@ -6,6 +6,7 @@
  * Inflow/Outflow use "0" for the empty side (not blank).
  */
 
+import JSZip from 'jszip';
 import type { Transaction } from './parsers/adcb';
 
 export type YNABFormat = 'inflow-outflow' | 'amount';
@@ -66,6 +67,31 @@ export function toYNABCSV(
 
 export function downloadCSV(csvContent: string, filename: string): void {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, filename);
+}
+
+export interface FileExportEntry {
+  originalFileName: string;
+  transactions: Transaction[];
+}
+
+export async function downloadZip(
+  entries: FileExportEntry[],
+  format: YNABFormat = 'inflow-outflow'
+): Promise<void> {
+  const zip = new JSZip();
+
+  for (const entry of entries) {
+    const csv = toYNABCSV(entry.transactions, format);
+    const baseName = entry.originalFileName.replace(/\.(csv|pdf|xlsx?)$/i, '');
+    zip.file(`${baseName}_ynab.csv`, csv);
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  downloadBlob(blob, 'uae2ynab_export.zip');
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
