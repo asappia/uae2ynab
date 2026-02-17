@@ -364,6 +364,103 @@ export async function parseENBDAccount(file: File): Promise<ParseResult> {
   };
 }
 
+// ─── Credit Card XLSX ───────────────────────────────────────────
+
+export async function parseENBDCreditCardXLSX(file: File): Promise<ParseResult> {
+  const transactions: Transaction[] = [];
+  const metadata: Record<string, string> = {};
+  const errors: string[] = [];
+
+  try {
+    const XLSX = await import('xlsx');
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Get all rows as arrays
+    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+
+    // Find the header row (contains "Date", "Details", "Amount")
+    let headerIndex = -1;
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const row = rows[i];
+      if (row && row.some((cell: any) => String(cell).trim() === 'Date') &&
+          row.some((cell: any) => String(cell).trim() === 'Details')) {
+        headerIndex = i;
+        break;
+      }
+    }
+
+    if (headerIndex === -1) {
+      errors.push('Could not find header row in XLSX file.');
+      return { bankName: 'Emirates NBD', statementType: 'Credit Card Statement', transactions, metadata, errors };
+    }
+
+    // Extract card number from first row if present
+    const firstRow = rows[0];
+    if (firstRow && firstRow[0]) {
+      const cardMatch = String(firstRow[0]).match(/Card Number[:\s]*(.*)/i);
+      if (cardMatch) metadata['cardNumber'] = cardMatch[1].trim();
+    }
+
+    // Map header columns
+    const headers = rows[headerIndex].map((h: any) => String(h).trim().toLowerCase());
+    const dateCol = headers.indexOf('date');
+    const detailsCol = headers.indexOf('details');
+    const amountCol = headers.indexOf('amount');
+    const debitCreditCol = headers.indexOf('debit/credit');
+
+    if (dateCol === -1 || detailsCol === -1 || amountCol === -1) {
+      errors.push('Missing required columns (Date, Details, Amount) in XLSX.');
+      return { bankName: 'Emirates NBD', statementType: 'Credit Card Statement', transactions, metadata, errors };
+    }
+
+    // Parse data rows
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[dateCol]) continue;
+
+      const dateStr = String(row[dateCol]).trim();
+      if (!dateStr) continue;
+
+      const details = String(row[detailsCol] || '').trim();
+      if (!details) continue;
+
+      // Parse amount — remove commas
+      const amountStr = String(row[amountCol] || '').replace(/,/g, '').trim();
+      const cleanAmount = parseFloat(amountStr);
+      if (isNaN(cleanAmount) || cleanAmount === 0) continue;
+
+      // Determine sign from Debit/Credit column
+      const dcValue = debitCreditCol !== -1 ? String(row[debitCreditCol] || '').trim().toLowerCase() : '';
+      const isCredit = dcValue === 'credit';
+      const amount = isCredit ? cleanAmount : -cleanAmount;
+
+      // Parse date: "Feb 17, 2026" → YYYY-MM-DD
+      const date = parseMonthCommaDate(dateStr);
+
+      transactions.push({
+        date,
+        payee: cleanENBDDescription(details),
+        memo: '',
+        amount,
+        originalDate: dateStr,
+      });
+    }
+  } catch (err: any) {
+    errors.push(`XLSX parsing error: ${err.message}`);
+  }
+
+  return {
+    bankName: 'Emirates NBD',
+    statementType: 'Credit Card Statement',
+    transactions,
+    metadata,
+    errors,
+  };
+}
+
 // ─── Helpers ────────────────────────────────────────────────────
 
 function parseDDMMYYYY(dateStr: string): string {
@@ -384,6 +481,24 @@ function parseMonthDate(dateStr: string): string {
   if (!match) return dateStr;
 
   const [, day, month, year] = match;
+  const mm = months[month.toLowerCase()];
+  if (!mm) return dateStr;
+
+  return `${year}-${mm}-${day.padStart(2, '0')}`;
+}
+
+function parseMonthCommaDate(dateStr: string): string {
+  // "Feb 17, 2026" → "2026-02-17"
+  const months: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04',
+    may: '05', jun: '06', jul: '07', aug: '08',
+    sep: '09', oct: '10', nov: '11', dec: '12',
+  };
+
+  const match = dateStr.match(/(\w{3})\s+(\d{1,2}),?\s+(\d{4})/i);
+  if (!match) return dateStr;
+
+  const [, month, day, year] = match;
   const mm = months[month.toLowerCase()];
   if (!mm) return dateStr;
 
