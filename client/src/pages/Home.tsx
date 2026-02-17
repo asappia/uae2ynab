@@ -113,7 +113,7 @@ export default function Home() {
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
                 {[
                   { bank: 'ADCB', types: 'Account & Credit Card', format: 'CSV' },
-                  { bank: 'Emirates NBD', types: 'Account & Credit Card', format: 'PDF' },
+                  { bank: 'Emirates NBD', types: 'Account & Credit Card', format: 'PDF / XLSX' },
                 ].map(({ bank, types, format }) => (
                   <div key={bank} className="flex items-baseline gap-2 text-sm">
                     <span className="font-medium">{bank}</span>

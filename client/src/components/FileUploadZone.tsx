@@ -22,12 +22,12 @@ export default function FileUploadZone({ onFilesSelected, isProcessing }: FileUp
     const valid: File[] = [];
     for (const file of Array.from(files)) {
       const name = file.name.toLowerCase();
-      if (name.endsWith('.csv') || name.endsWith('.pdf')) {
+      if (name.endsWith('.csv') || name.endsWith('.pdf') || name.endsWith('.xlsx') || name.endsWith('.xls')) {
         valid.push(file);
       }
     }
     if (valid.length === 0) {
-      setError('Only CSV and PDF files are supported.');
+      setError('Only CSV, PDF, and XLSX files are supported.');
       return [];
     }
     setError(null);
@@ -79,7 +79,7 @@ export default function FileUploadZone({ onFilesSelected, isProcessing }: FileUp
           <input
             type="file"
             multiple
-            accept=".csv,.pdf"
+            accept=".csv,.pdf,.xlsx,.xls"
             onChange={handleFileInput}
             className="hidden"
             disabled={isProcessing}
@@ -101,7 +101,7 @@ export default function FileUploadZone({ onFilesSelected, isProcessing }: FileUp
               {isDragging ? 'Release to process' : 'Drop files here or click to browse'}
             </p>
             <p className="text-xs text-muted-foreground mt-1.5 font-mono tracking-tight">
-              CSV (ADCB) &middot; PDF (Emirates NBD)
+              CSV (ADCB) &middot; PDF / XLSX (Emirates NBD)
             </p>
           </motion.div>
         </label>
