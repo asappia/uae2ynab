@@ -101,7 +101,7 @@ export default function FileUploadZone({ onFilesSelected, isProcessing }: FileUp
               {isDragging ? 'Release to process' : 'Drop files here or click to browse'}
             </p>
             <p className="text-xs text-muted-foreground mt-1.5 font-mono tracking-tight">
-              CSV (ADCB) &middot; PDF / XLSX (Emirates NBD)
+              CSV (ADCB) &middot; PDF / XLSX (Emirates NBD) &middot; XLSX (Mashreq)
             </p>
           </motion.div>
         </label>
