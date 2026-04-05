@@ -2,12 +2,13 @@
  * Parser Orchestrator
  * 
  * Auto-detects file type and routes to the appropriate parser.
- * Supports CSV (ADCB), PDF (ENBD), and XLSX (ENBD).
+ * Supports CSV (ADCB), PDF (ENBD), and XLSX (ENBD + Mashreq).
  */
 
 import type { ParseResult } from './adcb';
 import { detectADCBType, parseADCBAccount, parseADCBCreditCard } from './adcb';
 import { detectENBDType, parseENBDCreditCard, parseENBDAccount, parseENBDCreditCardXLSX } from './enbd';
+import { detectMashreqType, parseMashreqAccount, parseMashreqCreditCard } from './mashreq';
 
 export type { Transaction, ParseResult } from './adcb';
 
@@ -82,7 +83,41 @@ async function parsePDFFile(file: File): Promise<ParseResult> {
 }
 
 async function parseXLSXFile(file: File): Promise<ParseResult> {
-  // Currently only ENBD Credit Card XLSX is supported
-  // Auto-detect by checking for ENBD-specific headers
+  const XLSX = await import('xlsx');
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+
+  // Read first few rows to detect bank and statement type
+  const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+
+  // Find header row to get column names
+  let headerRow: string[] = [];
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const cells = row.map((c: any) => String(c || '').trim().toLowerCase());
+    if (cells.includes('date') && cells.includes('description')) {
+      headerRow = cells;
+      break;
+    }
+  }
+
+  // Try Mashreq detection first (by sheet name or header pattern)
+  const mashreqType = detectMashreqType(sheetName, headerRow);
+  if (mashreqType === 'account') {
+    return parseMashreqAccount(file);
+  }
+  if (mashreqType === 'creditcard') {
+    return parseMashreqCreditCard(file);
+  }
+
+  // Try ENBD detection (has "Details" and "Debit/Credit" columns)
+  if (headerRow.includes('details') && headerRow.includes('debit/credit')) {
+    return parseENBDCreditCardXLSX(file);
+  }
+
+  // Fallback: try ENBD XLSX parser
   return parseENBDCreditCardXLSX(file);
 }
