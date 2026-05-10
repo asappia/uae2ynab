@@ -30,12 +30,22 @@ type MashreqType = 'account' | 'creditcard' | null;
 
 export function detectMashreqType(sheetName: string, headers: string[]): MashreqType {
   const name = sheetName.toLowerCase();
-  const joined = headers.map(h => h.toLowerCase()).join(' ');
+  const lowerHeaders = headers.map(h => h.toLowerCase());
 
-  if (name.includes('card transactions') || joined.includes('local currency')) {
+  // Mashreq CC: sheet name "Card transactions Statement" or has "local currency" column
+  if (name.includes('card transactions') || lowerHeaders.includes('local currency')) {
     return 'creditcard';
   }
-  if (name.includes('account transactions') || (joined.includes('credit') && joined.includes('debit') && joined.includes('balance'))) {
+  // Mashreq Account: sheet name "Account transactions Statement" 
+  // OR has SEPARATE "credit" and "debit" columns (not a single "debit/credit" column like ENBD)
+  if (name.includes('account transactions')) {
+    return 'account';
+  }
+  // Check for separate credit/debit columns — Mashreq has individual "credit" and "debit" columns
+  // ENBD has a combined "debit/credit" column, so we must exclude that
+  const hasSeparateCredit = lowerHeaders.includes('credit') && !lowerHeaders.includes('debit/credit');
+  const hasSeparateDebit = lowerHeaders.includes('debit') && !lowerHeaders.includes('debit/credit');
+  if (hasSeparateCredit && hasSeparateDebit && lowerHeaders.includes('balance')) {
     return 'account';
   }
   return null;

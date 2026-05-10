@@ -461,6 +461,110 @@ export async function parseENBDCreditCardXLSX(file: File): Promise<ParseResult> 
   };
 }
 
+// ─── Account XLSX ──────────────────────────────────────────────
+
+export async function parseENBDAccountXLSX(file: File): Promise<ParseResult> {
+  const transactions: Transaction[] = [];
+  const metadata: Record<string, string> = {};
+  const errors: string[] = [];
+
+  try {
+    const XLSX = await import('xlsx');
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Get all rows as arrays
+    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+
+    // Extract account info from first row if present
+    const firstRow = rows[0];
+    if (firstRow && firstRow[0]) {
+      const accountMatch = String(firstRow[0]).match(/Account Number[:\s]*(.*)/i);
+      if (accountMatch) metadata['accountNumber'] = accountMatch[1].trim();
+      const currencyMatch = String(firstRow[0]).match(/Currency[:\s]*(\w+)/i);
+      if (currencyMatch) metadata['currency'] = currencyMatch[1].trim();
+    }
+
+    // Find the header row (contains "Date", "Details", "Description", "Balance")
+    let headerIndex = -1;
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const row = rows[i];
+      if (row && row.some((cell: any) => String(cell).trim() === 'Date') &&
+          row.some((cell: any) => String(cell).trim() === 'Details') &&
+          row.some((cell: any) => String(cell).trim() === 'Description')) {
+        headerIndex = i;
+        break;
+      }
+    }
+
+    if (headerIndex === -1) {
+      errors.push('Could not find header row in ENBD Account XLSX file.');
+      return { bankName: 'Emirates NBD', statementType: 'Account Statement', transactions, metadata, errors };
+    }
+
+    // Map header columns
+    const headers = rows[headerIndex].map((h: any) => String(h).trim().toLowerCase());
+    const dateCol = headers.indexOf('date');
+    const detailsCol = headers.indexOf('details');
+    const descriptionCol = headers.indexOf('description');
+    const amountCol = headers.indexOf('amount');
+    const debitCreditCol = headers.indexOf('debit/credit');
+
+    if (dateCol === -1 || detailsCol === -1 || amountCol === -1) {
+      errors.push('Missing required columns (Date, Details, Amount) in ENBD Account XLSX.');
+      return { bankName: 'Emirates NBD', statementType: 'Account Statement', transactions, metadata, errors };
+    }
+
+    // Parse data rows
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[dateCol]) continue;
+
+      const dateStr = String(row[dateCol]).trim();
+      if (!dateStr) continue;
+
+      const details = String(row[detailsCol] || '').trim();
+      if (!details) continue;
+
+      // Description goes into memo
+      const description = descriptionCol !== -1 ? String(row[descriptionCol] || '').trim() : '';
+
+      // Parse amount — remove commas
+      const amountStr = String(row[amountCol] || '').replace(/,/g, '').trim();
+      const cleanAmount = parseFloat(amountStr);
+      if (isNaN(cleanAmount) || cleanAmount === 0) continue;
+
+      // Determine sign from Debit/Credit column
+      const dcValue = debitCreditCol !== -1 ? String(row[debitCreditCol] || '').trim().toLowerCase() : '';
+      const isCredit = dcValue === 'credit';
+      const amount = isCredit ? cleanAmount : -cleanAmount;
+
+      // Parse date: "Apr 28, 2026" → YYYY-MM-DD
+      const date = parseMonthCommaDate(dateStr);
+
+      transactions.push({
+        date,
+        payee: cleanENBDDescription(details),
+        memo: description,
+        amount,
+        originalDate: dateStr,
+      });
+    }
+  } catch (err: any) {
+    errors.push(`XLSX parsing error: ${err.message}`);
+  }
+
+  return {
+    bankName: 'Emirates NBD',
+    statementType: 'Account Statement',
+    transactions,
+    metadata,
+    errors,
+  };
+}
+
 // ─── Helpers ────────────────────────────────────────────────────
 
 function parseDDMMYYYY(dateStr: string): string {
