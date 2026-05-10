@@ -7,7 +7,7 @@
 
 import type { ParseResult } from './adcb';
 import { detectADCBType, parseADCBAccount, parseADCBCreditCard } from './adcb';
-import { detectENBDType, parseENBDCreditCard, parseENBDAccount, parseENBDCreditCardXLSX } from './enbd';
+import { detectENBDType, parseENBDCreditCard, parseENBDAccount, parseENBDCreditCardXLSX, parseENBDAccountXLSX } from './enbd';
 import { detectMashreqType, parseMashreqAccount, parseMashreqCreditCard } from './mashreq';
 
 export type { Transaction, ParseResult } from './adcb';
@@ -98,7 +98,8 @@ async function parseXLSXFile(file: File): Promise<ParseResult> {
     const row = rows[i];
     if (!row) continue;
     const cells = row.map((c: any) => String(c || '').trim().toLowerCase());
-    if (cells.includes('date') && cells.includes('description')) {
+    // Match header row: must have 'date' and either 'description' or 'details'
+    if (cells.includes('date') && (cells.includes('description') || cells.includes('details'))) {
       headerRow = cells;
       break;
     }
@@ -115,9 +116,14 @@ async function parseXLSXFile(file: File): Promise<ParseResult> {
 
   // Try ENBD detection (has "Details" and "Debit/Credit" columns)
   if (headerRow.includes('details') && headerRow.includes('debit/credit')) {
+    // Distinguish ENBD Account vs Credit Card XLSX:
+    // Account XLSX has "Description" and "Balance" columns; CC XLSX does not
+    if (headerRow.includes('description') && headerRow.includes('balance')) {
+      return parseENBDAccountXLSX(file);
+    }
     return parseENBDCreditCardXLSX(file);
   }
 
-  // Fallback: try ENBD XLSX parser
+  // Fallback: try ENBD CC XLSX parser
   return parseENBDCreditCardXLSX(file);
 }
