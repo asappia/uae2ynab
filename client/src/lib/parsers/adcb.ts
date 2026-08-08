@@ -41,8 +41,15 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
+/** Extract DD/MM/YYYY from values that may include a time (e.g. "22/05/2026 06:26:05"). */
+function extractDDMMYYYY(dateStr: string): string | null {
+  const match = dateStr.trim().match(/^(\d{2}\/\d{2}\/\d{4})(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$/);
+  return match ? match[1] : null;
+}
+
 function parseDDMMYYYY(dateStr: string): string {
-  const parts = dateStr.split('/');
+  const dateOnly = extractDDMMYYYY(dateStr) ?? dateStr;
+  const parts = dateOnly.split('/');
   if (parts.length !== 3) return dateStr;
   const [dd, mm, yyyy] = parts;
   return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
@@ -119,7 +126,9 @@ export function parseADCBAccount(content: string): ParseResult {
     
     const [postingDate, _valueDate, _refNo, description, debitStr, creditStr] = fields;
     
-    if (!postingDate || !postingDate.match(/^\d{2}\/\d{2}\/\d{4}$/)) continue;
+    // Newer ADCB e-statements include a time on Posting Date (DD/MM/YYYY HH:mm:ss)
+    const dateOnly = postingDate ? extractDDMMYYYY(postingDate) : null;
+    if (!dateOnly) continue;
     
     const debit = parseAmount(debitStr);
     const credit = parseAmount(creditStr);
@@ -130,11 +139,11 @@ export function parseADCBAccount(content: string): ParseResult {
     const amount = credit > 0 ? credit : -debit;
     
     transactions.push({
-      date: parseDDMMYYYY(postingDate),
+      date: parseDDMMYYYY(dateOnly),
       payee: cleanDescription(description),
       memo: '',
       amount,
-      originalDate: postingDate,
+      originalDate: dateOnly,
     });
   }
   
@@ -193,7 +202,8 @@ export function parseADCBCreditCard(content: string): ParseResult {
     // Skip card info lines
     if (description?.includes('Primary Card Number') || description?.includes('Card Holder Name')) continue;
     
-    if (!dateStr || !dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) continue;
+    const dateOnly = dateStr ? extractDDMMYYYY(dateStr) : null;
+    if (!dateOnly) continue;
     
     const rawAmount = parseAmount(amountStr);
     if (rawAmount === 0) continue;
@@ -202,11 +212,11 @@ export function parseADCBCreditCard(content: string): ParseResult {
     const amount = crDr === 'CR' ? rawAmount : -rawAmount;
     
     transactions.push({
-      date: parseDDMMYYYY(dateStr),
+      date: parseDDMMYYYY(dateOnly),
       payee: cleanDescription(description),
       memo: '',
       amount,
-      originalDate: dateStr,
+      originalDate: dateOnly,
     });
   }
   
