@@ -22,29 +22,30 @@ describe('ADCB account e-statement CSV', () => {
     expect(result.errors).toEqual([]);
     expect(result.bankName).toBe('ADCB');
     expect(result.statementType).toBe('Account Statement');
-    expect(result.metadata.accountNumber).toContain('XXXXXXXXXXXX0001');
-    expect(result.transactions.length).toBeGreaterThan(0);
+    expect(result.metadata.accountNumber).toContain('10000000000001');
+    expect(result.metadata.accountName).toBe('SAMPLE ACCOUNT HOLDER');
+    expect(result.transactions).toHaveLength(8);
 
     const salary = result.transactions.find((tx) => tx.payee === 'SALARY');
     expect(salary).toMatchObject({
-      date: '2026-05-22',
-      amount: 41740.76,
-      originalDate: '22/05/2026',
+      date: '2024-01-02',
+      amount: 5000,
+      originalDate: '02/01/2024',
     });
 
     const transfer = result.transactions.find((tx) =>
       tx.payee.includes('TRF OUT TO Sample Holder'),
     );
     expect(transfer).toMatchObject({
-      date: '2026-05-22',
-      amount: -6500,
-      originalDate: '22/05/2026',
+      date: '2024-01-02',
+      amount: -1500,
+      originalDate: '02/01/2024',
     });
   });
 
   it('still parses date-only Posting Date values from older exports', () => {
     const legacy = [
-      '"Account Number: 1234567890 AED",',
+      '"Account Number: 10000000000099 AED",',
       'Posting Date,Value Date,Reference No,Description,Debit Amount,Credit Amount,Balance',
       '"15/01/2024","15/01/2024","1","GROCERIES","42.50","0.00","100.00",',
       '"16/01/2024","16/01/2024","2","REFUND","0.00","10.00","110.00",',
